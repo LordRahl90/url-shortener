@@ -2,8 +2,7 @@ name: Test and Build
 on:
   push:
     branches:
-      - "main"
-      - "testing"
+      - "master"
 
   pull_request:
     branches:
