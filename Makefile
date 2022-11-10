@@ -12,10 +12,10 @@ start-image:
 	@docker-compose up
 
 build-image:
-	@docker build -t gcr.io/neurons-be-test/shortener:latest .
+	@docker build -t lordrahl/shortener:latest .
 
 push-image:
-	@docker push gcr.io/neurons-be-test/shortener:latest
+	@docker push lordrahl/shortener:latest
 
 bi: build-image
 pi: push-image

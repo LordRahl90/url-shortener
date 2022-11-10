@@ -59,6 +59,8 @@ func setupDB() (*gorm.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		user, password, host, port, dbName)
 
+	fmt.Printf("\nDSN: %s\n\n", dsn)
+
 	return gorm.Open(mysql.Open(dsn), &gorm.Config{})
 }
 

@@ -109,7 +109,7 @@ func TestShortenWithInvalidJSON(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, res.Code)
 }
 
-func TestShortenWithBAdURL(t *testing.T) {
+func TestShortenWithBadURL(t *testing.T) {
 	b := []byte(`{"link":"corporatee-tailers hello exploit"}`)
 	res := handleRequest(t, http.MethodPost, "/", b)
 	require.Equal(t, http.StatusBadRequest, res.Code)

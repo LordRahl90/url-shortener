@@ -1,5 +1,31 @@
 version: '3.1'
 services:
+  shortener:
+    image: lordrahl/shortener:latest
+    container_name: shortener
+    ports:
+      - 8080:8080
+    networks:
+      - shortener
+
+    environment:
+      ENV: docker
+      DB_HOST: shortener-db
+      DB_PORT: 3306
+      DB_USER: shrt_user
+      DB_PASSWORD: p@assword
+      DB_NAME: shortener
+      BASE_URL: http://localhost:8080
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: password123
+
+    depends_on:
+      shortener-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   redis:
     image: 'bitnami/redis:latest'
     container_name: shortener-redis
@@ -7,6 +33,11 @@ services:
       REDIS_PASSWORD: password123
     ports:
       - 6379:6379
+    healthcheck:
+      test: ['CMD', 'redis-cli','ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - shortener
       
@@ -26,7 +57,7 @@ services:
       - shortener
 
     healthcheck: # check the healthiness with the following configuration
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '--user=zssn_user', '--password=p@azzword']
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '--user=shrt_user', '--password=p@assword']
       interval: 3s
       timeout: 3s
       retries: 5
