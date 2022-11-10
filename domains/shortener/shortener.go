@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"context"
+	"net/url"
 	"shortener/domains/entities"
 	"shortener/domains/shortener/storage"
 )
@@ -24,6 +25,11 @@ func New(store storage.IShortenerStorage) IShortenerService {
 
 // Create implements IShortenerService
 func (s *ShortenerService) Create(ctx context.Context, record *entities.Shortener) error {
+	// make sure we are getting a valid url
+	if _, err := url.Parse(record.LongText); err != nil {
+		return err
+	}
+
 	dbRecord := record.ToDBEntity()
 	if err := s.store.Create(ctx, dbRecord); err != nil {
 		return err

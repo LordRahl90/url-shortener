@@ -11,6 +11,7 @@ import (
 
 // Server constructs the basic server components
 type Server struct {
+	baseURL    string
 	DB         *gorm.DB
 	Redis      *redis.Client
 	Router     *gin.Engine
@@ -19,8 +20,9 @@ type Server struct {
 }
 
 // New creates a new server instance injected with necessary service
-func New(db *gorm.DB, genService generator.IGenerateService, shortSvc shortener.IShortenerService) (*Server, error) {
+func New(baseURL string, db *gorm.DB, genService generator.IGenerateService, shortSvc shortener.IShortenerService) (*Server, error) {
 	s := &Server{
+		baseURL:    baseURL,
 		Router:     gin.Default(),
 		genService: genService,
 		shortSvc:   shortSvc,
