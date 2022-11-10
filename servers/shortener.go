@@ -42,6 +42,7 @@ func (s *Server) shorten(ctx *gin.Context) {
 			"success": false,
 			"error":   err.Error(),
 		})
+		return
 	}
 
 	res := &responses.Shortener{
@@ -90,6 +91,7 @@ func (s *Server) visit(ctx *gin.Context) {
 			"success": false,
 			"error":   err.Error(),
 		})
+		return
 	}
 
 	// redirect to the long version
