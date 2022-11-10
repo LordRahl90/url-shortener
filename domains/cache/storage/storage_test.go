@@ -23,6 +23,9 @@ func TestMain(m *testing.M) {
 		os.Exit(code)
 	}()
 	client = setupRedisClient()
+	if client == nil {
+		panic("redis not connected")
+	}
 	store = New(client)
 	code = m.Run()
 }
