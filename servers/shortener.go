@@ -8,6 +8,8 @@ import (
 	"shortener/responses"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 var (
@@ -36,8 +38,14 @@ func (s *Server) shorten(ctx *gin.Context) {
 	}
 	// keep this record in memory.
 	// ideally should be kept in redis to make sure every instance of this application
-	// can access such data centrally.
-	shortToLong[svcEnt.ShortText] = svcEnt.LongText
+	// can access such data centrally rather than keep a copy in memory.
+	// shortToLong[svcEnt.ShortText] = svcEnt.LongText
+	go func(short, long string) {
+		if err := s.cacheService.Save(ctx.Request.Context(), short, long); err != nil {
+			log.Err(err)
+		}
+	}(svcEnt.ShortText, svcEnt.LongText)
+
 	res := &responses.Shortener{
 		Link:  svcEnt.LongText,
 		Short: fmt.Sprintf("%s/%s", s.baseURL, svcEnt.ShortText),
@@ -48,12 +56,43 @@ func (s *Server) shorten(ctx *gin.Context) {
 func (s *Server) visit(ctx *gin.Context) {
 	short := ctx.Param("short")
 	if short == "" {
-		// complain here
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   fmt.Errorf("invalid short link"),
+		})
+		return
 	}
 	// check for the long version in cache
+	rec, ok := shortToLong[short]
+	if ok {
+		ctx.Redirect(http.StatusMovedPermanently, rec)
+		return
+	}
 
 	//if not found in cache, check for it in the dbase
-
+	res, err := s.shortSvc.FindByShort(ctx.Request.Context(), short)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
 	// if found, spin up a routine to keep it in the cache
+	// shortToLong[short] = res.LongText
+	go func(short, long string) {
+		if err := s.cacheService.Save(ctx.Request.Context(), short, long); err != nil {
+			log.Err(err)
+		}
+	}(short, res.LongText)
+
 	// redirect to the long version
+	ctx.Redirect(http.StatusMovedPermanently, res.LongText)
 }

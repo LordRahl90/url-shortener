@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 
+	"shortener/domains/cache"
+	cacheStore "shortener/domains/cache/storage"
+	"shortener/domains/entities"
 	"shortener/domains/generator"
 	"shortener/domains/shortener"
 	"shortener/domains/shortener/storage"
@@ -17,6 +21,8 @@ import (
 	"shortener/responses"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
@@ -30,13 +36,15 @@ var (
 	genService generator.IGenerateService
 	shortSvc   shortener.IShortenerService
 
+	cacheSvc cache.ICacheService
+
 	server *Server
 )
 
 func TestMain(m *testing.M) {
 	code := 1
 	defer func() {
-		// cleanup()
+		cleanup()
 		os.Exit(code)
 	}()
 	d, err := setupTestDB()
@@ -51,7 +59,10 @@ func TestMain(m *testing.M) {
 	}
 	shortSvc = shortener.New(store)
 
-	s, err := New(baseURL, db, genService, shortSvc)
+	chStore := cacheStore.New(setupRedisClient())
+	cacheSvc = cache.New(chStore)
+
+	s, err := New(baseURL, db, genService, shortSvc, cacheSvc)
 	if err != nil {
 		panic(err)
 	}
@@ -86,6 +97,43 @@ func TestShortenLink(t *testing.T) {
 	data, err := shortSvc.FindByShort(context.Background(), short)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
+
+	res = handleRequest(t, http.MethodGet, "/"+short, nil)
+	require.Equal(t, http.StatusMovedPermanently, res.Code)
+}
+
+func TestShortenWithInvalidJSON(t *testing.T) {
+	b := []byte(`
+	{"link":"https://www.corporatee-tailers.info/exploit",}
+	`)
+	res := handleRequest(t, http.MethodPost, "/", b)
+	require.Equal(t, http.StatusBadRequest, res.Code)
+}
+
+func TestShortenWithBAdURL(t *testing.T) {
+	b := []byte(`{"link":"corporatee-tailers hello exploit"}`)
+	res := handleRequest(t, http.MethodPost, "/", b)
+	require.Equal(t, http.StatusBadRequest, res.Code)
+	exp := `{"error":"parse \"corporatee-tailers hello exploit\": invalid URI for request","success":false}`
+	require.Equal(t, exp, res.Body.String())
+}
+
+func TestVisitShortLink(t *testing.T) {
+	ctx := context.Background()
+	svcRec := &entities.Shortener{
+		LongText: gofakeit.URL(),
+	}
+	err := shortSvc.Create(ctx, svcRec)
+	require.NoError(t, err)
+	require.True(t, len(svcRec.ShortText) <= 10)
+
+	res := handleRequest(t, http.MethodGet, "/"+svcRec.ShortText, nil)
+	require.Equal(t, http.StatusMovedPermanently, res.Code)
+}
+
+func TestVisitNonExistentShortLink(t *testing.T) {
+	res := handleRequest(t, http.MethodGet, "/"+uuid.NewString(), nil)
+	require.Equal(t, http.StatusNotFound, res.Code)
 }
 
 func handleRequest(t *testing.T, method, path string, payload []byte) *httptest.ResponseRecorder {
@@ -96,6 +144,7 @@ func handleRequest(t *testing.T, method, path string, payload []byte) *httptest.
 		err error
 	)
 	if len(payload) > 0 {
+		fmt.Printf("\n\nPayload: %s\n\n", payload)
 		req, err = http.NewRequest(method, path, bytes.NewBuffer(payload))
 	} else {
 		req, err = http.NewRequest(method, path, nil)
@@ -113,6 +162,14 @@ func setupTestDB() (*gorm.DB, error) {
 		dsn = "test_user:password@tcp(127.0.0.1:33306)/shortener?charset=utf8mb4&parseTime=True&loc=Local"
 	}
 	return gorm.Open(mysql.Open(dsn), &gorm.Config{})
+}
+
+func setupRedisClient() *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "password123",
+		DB:       0,
+	})
 }
 
 func cleanup() {

@@ -3,10 +3,11 @@ package shortener
 import (
 	"context"
 	"os"
-	"shortener/domains/entities"
-	"shortener/domains/shortener/storage"
 	"testing"
 	"time"
+
+	"shortener/domains/entities"
+	"shortener/domains/shortener/storage"
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,24 @@ func TestCreateWithError(t *testing.T) {
 	}
 	err := svc.Create(ctx, r)
 	require.EqualError(t, err, gorm.ErrRecordNotFound.Error())
+}
+
+func TestCreateRecordWithBadURL(t *testing.T) {
+	store := &MockStorage{
+		CreateFunc: func(ctx context.Context, r *storage.Record) error {
+			r.ID = uint64(time.Nanosecond)
+			r.ShortText = gofakeit.Word()
+			return nil
+		},
+	}
+	svc := New(store)
+	ctx := context.Background()
+	r := &entities.Shortener{
+		LongText: gofakeit.Paragraph(2, 2, 10, " "),
+	}
+
+	err := svc.Create(ctx, r)
+	require.NotNil(t, err)
 }
 
 func TestCreateWithUndefinedMock(t *testing.T) {

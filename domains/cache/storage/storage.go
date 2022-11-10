@@ -6,24 +6,24 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-var _ ICacheStore = (*Redis)(nil)
+var _ ICacheStore = (*CaceheStore)(nil)
 
 // Redis implementation for cache storage
-type Redis struct {
-	Client *redis.Client
+type CaceheStore struct {
+	client *redis.Client
 }
 
 // New returns a new implementation for cache service
 func New(client *redis.Client) ICacheStore {
-	return &Redis{Client: client}
+	return &CaceheStore{client: client}
 }
 
 // Find implements finding a key from redis
-func (*Redis) Find(ctx context.Context, key string) (any, error) {
-	panic("unimplemented")
+func (cs *CaceheStore) Find(ctx context.Context, key string) (string, error) {
+	return cs.client.Get(ctx, key).Result()
 }
 
 // Save implements saving a record to redis
-func (*Redis) Save(ctx context.Context, key string, data any) error {
-	panic("unimplemented")
+func (cs *CaceheStore) Save(ctx context.Context, key, value string) error {
+	return cs.client.Set(ctx, key, value, 0).Err() // never expire
 }
