@@ -165,6 +165,14 @@ func setupTestDB() (*gorm.DB, error) {
 }
 
 func setupRedisClient() *redis.Client {
+	env := os.Getenv("ENVIRONMENT")
+	if env == "cicd" {
+		return redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
+		})
+	}
 	return redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "password123",

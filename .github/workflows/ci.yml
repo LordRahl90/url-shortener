@@ -44,8 +44,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: rootpassword
           MYSQL_USER: test_user
           MYSQL_PASSWORD: password
-          MYSQL_DATABASE: shipments
-          ENVIRONMENT: cicd
+          MYSQL_DATABASE: shortener
         ports:
           - 33306:3306
     steps:
@@ -58,6 +57,10 @@ jobs:
 
       - name: Test
         run: ENVIRONMENT=cicd make test
+        env:
+          REDIS_HOST: redis
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: password123
 
 
   push:
