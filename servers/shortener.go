@@ -8,7 +8,6 @@ import (
 	"shortener/responses"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -40,11 +39,12 @@ func (s *Server) shorten(ctx *gin.Context) {
 	// ideally should be kept in redis to make sure every instance of this application
 	// can access such data centrally rather than keep a copy in memory.
 	// shortToLong[svcEnt.ShortText] = svcEnt.LongText
-	go func(short, long string) {
-		if err := s.cacheService.Save(ctx.Request.Context(), short, long); err != nil {
-			log.Err(err)
-		}
-	}(svcEnt.ShortText, svcEnt.LongText)
+	if err := s.cacheService.Save(ctx.Request.Context(), svcEnt.ShortText, svcEnt.LongText); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+	}
 
 	res := &responses.Shortener{
 		Link:  svcEnt.LongText,
@@ -87,11 +87,12 @@ func (s *Server) visit(ctx *gin.Context) {
 	}
 	// if found, spin up a routine to keep it in the cache
 	// shortToLong[short] = res.LongText
-	go func(short, long string) {
-		if err := s.cacheService.Save(ctx.Request.Context(), short, long); err != nil {
-			log.Err(err)
-		}
-	}(short, res.LongText)
+	if err := s.cacheService.Save(ctx.Request.Context(), short, res.LongText); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+	}
 
 	// redirect to the long version
 	ctx.Redirect(http.StatusMovedPermanently, res.LongText)
