@@ -1,0 +1,37 @@
+version: '3.1'
+services:
+  redis:
+    image: 'bitnami/redis:latest'
+    container_name: shortener-redis
+    environment:
+      REDIS_PASSWORD: password123
+    ports:
+      - 16379:6379
+    networks:
+      - shortener
+      
+  shortener-db:
+    container_name: shortener-db
+    image: mysql:latest
+    command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: shrt_user
+      MYSQL_PASSWORD: p@assword
+      MYSQL_DATABASE: shortener
+    ports:
+      - 33061:3306
+
+    networks:
+      - shortener
+
+    healthcheck: # check the healthiness with the following configuration
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '--user=zssn_user', '--password=p@azzword']
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+networks:
+  shortener:
+    driver: bridge
+    
