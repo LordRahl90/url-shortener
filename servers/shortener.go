@@ -35,12 +35,10 @@ func (s *Server) shorten(ctx *gin.Context) {
 		})
 		return
 	}
-	// keep this record in memory.
-	// ideally should be kept in redis to make sure every instance of this application
-	// can access such data centrally rather than keep a copy in memory.
+
 	// shortToLong[svcEnt.ShortText] = svcEnt.LongText
 	if err := s.cacheService.Save(ctx.Request.Context(), svcEnt.ShortText, svcEnt.LongText); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
+		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -88,7 +86,7 @@ func (s *Server) visit(ctx *gin.Context) {
 	// if found, spin up a routine to keep it in the cache
 	// shortToLong[short] = res.LongText
 	if err := s.cacheService.Save(ctx.Request.Context(), short, res.LongText); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
+		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
