@@ -40,7 +40,7 @@ func TestCreateRecord(t *testing.T) {
 	err := svc.Create(ctx, r)
 	require.NoError(t, err)
 	require.NotEmpty(t, r.ShortText)
-	assert.True(t, len(r.ShortText) < 10)
+	assert.True(t, len(r.ShortText) <= 10)
 }
 
 func TestCreateWithError(t *testing.T) {
