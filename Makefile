@@ -6,7 +6,7 @@ start:
 	@go run ./cmd/
 
 test:
-	@go test ./... --cover
+	@go test ./... -v --cover
 
 start-image:
 	@docker-compose up

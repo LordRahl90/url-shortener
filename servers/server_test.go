@@ -144,7 +144,6 @@ func handleRequest(t *testing.T, method, path string, payload []byte) *httptest.
 		err error
 	)
 	if len(payload) > 0 {
-		fmt.Printf("\n\nPayload: %s\n\n", payload)
 		req, err = http.NewRequest(method, path, bytes.NewBuffer(payload))
 	} else {
 		req, err = http.NewRequest(method, path, nil)
