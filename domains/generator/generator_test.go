@@ -31,11 +31,11 @@ func TestGenerate_SameIDSameResult(t *testing.T) {
 	id := time.Now().Nanosecond()
 	res := svc.Generate(ctx, id)
 	require.NotEmpty(t, res)
-	require.Len(t, res, 10)
+	require.True(t, len(res) <= 10)
 
 	res1 := svc.Generate(ctx, id)
 	require.NotEmpty(t, res1)
-	require.Len(t, res1, 10)
+	require.True(t, len(res1) <= 10)
 
 	// make sure same ID gives same response
 	require.Equal(t, res, res1)
@@ -47,22 +47,12 @@ func TestGenerate_DiffID_DiffResult(t *testing.T) {
 
 	res := svc.Generate(ctx, time.Now().Nanosecond())
 	require.NotEmpty(t, res)
-	require.Len(t, res, 10)
+	require.True(t, len(res) <= 10)
 
 	res1 := svc.Generate(ctx, time.Now().Nanosecond())
 	require.NotEmpty(t, res1)
-	require.Len(t, res1, 10)
+	require.True(t, len(res1) <= 10)
 
 	// make sure same ID gives same response
 	require.NotEqual(t, res, res1)
 }
-
-// func TestGenerate_AddMachineID(t *testing.T) {
-// 	// 376673000
-// 	ctx := context.Background()
-// 	svc := New()
-
-// 	res := svc.Generate(ctx, 50376673000)
-// 	require.NotEmpty(t, res)
-// 	require.Len(t, res, 10)
-// }
